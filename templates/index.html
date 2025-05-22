@@ -43,14 +43,14 @@
             <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
             Your browser does not support the video tag.
         </video>
-        <div id="hover_display" v-if="hoverDisplayVisible">{{ hoverDisplayText }}</div>
+        <div id="hover_display" v-if="hoverDisplayVisible">{% raw %}{{ hoverDisplayText }}{% endraw %}</div>
     </div>
 
     <div id="frames">
         <div class="frame" v-for="frame in frames" :key="frame.time">
             <img :src="frame.data" width="100">
             <div class="frame-controls">
-                {{ formatTime(frame.time) }}
+                {% raw %}{{ formatTime(frame.time) }}{% endraw %}
                 <button @click="setStartFromFrame(frame.time)">Start</button>
                 <button @click="setEndFromFrame(frame.time)">End</button>
             </div>
@@ -89,7 +89,7 @@
     <button @click="createClip">Create Clip</button>
     <button @click="previewClip">Preview Clip</button>
 
-    <pre>{{ result }}</pre>
+    <pre>{% raw %}{{ result }}{% endraw %}</pre>
 </div>
 
 <script>
