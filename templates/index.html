@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Clipping</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        video { display: block; margin-bottom: 20px; }
+        label { display: block; margin: 5px 0; }
+    </style>
+</head>
+<body>
+<h1>AWS MediaLive Clipping</h1>
+
+<video id="video" width="640" controls autoplay>
+    <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
+    Your browser does not support the video tag.
+</video>
+
+<div>
+    <label>Start Time (UTC): <input type="text" id="start"></label>
+    <button onclick="setStartNow()">Set Start to Now</button>
+</div>
+<div>
+    <label>End Time (UTC): <input type="text" id="end"></label>
+    <button onclick="setEndNow()">Set End to Now</button>
+</div>
+<div>
+    <label>Endpoint ID: <input type="text" id="endpoint_id"></label>
+</div>
+<div>
+    <label>Bucket: <input type="text" id="bucket"></label>
+</div>
+<div>
+    <label>Manifest Prefix: <input type="text" id="manifest_prefix"></label>
+</div>
+<div>
+    <label>Role ARN: <input type="text" id="role_arn"></label>
+</div>
+<div>
+    <label>Region: <input type="text" id="region" value="us-east-1"></label>
+</div>
+
+<button onclick="createClip()">Create Clip</button>
+
+<pre id="result"></pre>
+
+<script>
+function setStartNow() {
+    const now = new Date().toISOString().slice(0, 19);
+    document.getElementById('start').value = now;
+}
+
+function setEndNow() {
+    const now = new Date().toISOString().slice(0, 19);
+    document.getElementById('end').value = now;
+}
+
+async function createClip() {
+    const payload = {
+        endpoint_id: document.getElementById('endpoint_id').value,
+        start: document.getElementById('start').value,
+        end: document.getElementById('end').value,
+        bucket: document.getElementById('bucket').value,
+        manifest_prefix: document.getElementById('manifest_prefix').value,
+        role_arn: document.getElementById('role_arn').value,
+        region: document.getElementById('region').value
+    };
+    const res = await fetch('/clip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+}
+</script>
+</body>
+</html>

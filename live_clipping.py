@@ -1,5 +1,5 @@
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime
 import boto3
 
 
@@ -10,8 +10,8 @@ def parse_args():
                         help='MediaPackage OriginEndpoint ID')
     parser.add_argument('--start', required=True,
                         help='Clip start time in ISO 8601 UTC format (YYYY-MM-DDTHH:MM:SS)')
-    parser.add_argument('--duration', type=int, required=True,
-                        help='Duration of the clip in seconds')
+    parser.add_argument('--end', required=True,
+                        help='Clip end time in ISO 8601 UTC format (YYYY-MM-DDTHH:MM:SS)')
     parser.add_argument('--bucket', required=True,
                         help='S3 bucket for the harvested clip')
     parser.add_argument('--manifest-prefix', required=True,
@@ -24,7 +24,7 @@ def parse_args():
 
 def create_clip(args):
     start_time = datetime.fromisoformat(args.start)
-    end_time = start_time + timedelta(seconds=args.duration)
+    end_time = datetime.fromisoformat(args.end)
     client = boto3.client('mediapackage', region_name=args.region)
     response = client.create_harvest_job(
         Id=f"clip-{int(datetime.utcnow().timestamp())}",
