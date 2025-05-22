@@ -120,7 +120,8 @@ createApp({
             const h = String(Math.floor(s / 3600)).padStart(2, '0');
             const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
             const secs = String(s % 60).padStart(2, '0');
-            return `${h}:${m}:${secs}`;
+            const ms = String(Math.floor((sec - s) * 1000)).padStart(3, '0');
+            return `${h}:${m}:${secs}.${ms}`;
         };
 
         const onVideoMove = e => {
@@ -135,7 +136,7 @@ createApp({
         const isoFromCurrent = seconds => {
             const now = new Date();
             const diff = video.value.currentTime - seconds;
-            return new Date(now.getTime() - diff * 1000).toISOString().slice(0, 19);
+            return new Date(now.getTime() - diff * 1000).toISOString().slice(0, 23);
         };
 
         const generateFrames = async () => {
@@ -166,11 +167,11 @@ createApp({
         };
 
         const setStartNow = () => {
-            start.value = new Date().toISOString().slice(0, 19);
+            start.value = new Date().toISOString().slice(0, 23);
         };
 
         const setEndNow = () => {
-            end.value = new Date().toISOString().slice(0, 19);
+            end.value = new Date().toISOString().slice(0, 23);
         };
 
         const setStartFrame = () => {
