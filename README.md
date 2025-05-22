@@ -35,3 +35,9 @@ Then open `http://localhost:5000` in your browser. The page shows a video player
 and a form to submit the start and end times along with other parameters. After
 filling out the fields press "Create Clip" and the server will request a harvest
 job from MediaPackage.
+
+The web page shows the current playback time when you hover over the video.
+Click **Set Start Here** and **Set End Here** to mark the boundaries with
+frame‑level precision and optionally provide a title for the clip. The
+**Preview Clip** button plays back just the selected range so you can verify the
+cut before creating it.
