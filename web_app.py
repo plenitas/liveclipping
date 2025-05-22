@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 from flask import Flask, render_template, request, jsonify
+import os
 from live_clipping import create_clip
 
 app = Flask(__name__)
@@ -7,8 +8,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    # Replace with your HLS manifest URL
-    video_url = 'https://example.com/stream.m3u8'
+    # Use VIDEO_URL env var or fallback to placeholder URL
+    video_url = os.environ.get('VIDEO_URL', 'https://example.com/stream.m3u8')
     return render_template('index.html', video_url=video_url)
 
 
