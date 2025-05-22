@@ -7,7 +7,11 @@
         body { font-family: Arial, sans-serif; margin: 20px; }
         video { display: block; margin-bottom: 20px; }
         label { display: block; margin: 5px 0; }
+        #player_area { display: flex; align-items: flex-start; }
         #container { position: relative; display: inline-block; }
+        #clip_list { width: 200px; margin-left: 20px; }
+        .clip-item { margin-bottom: 10px; }
+        .clip-item img { width: 100%; display: block; }
         #hover_display {
             position: absolute;
             top: 5px;
@@ -46,16 +50,26 @@
 <div id="app">
     <h1>AWS MediaLive Clipping</h1>
 
-    <div id="container">
-        <video ref="video" width="640" controls autoplay crossorigin="anonymous"
-               @mousemove="onVideoMove" @mouseleave="hoverDisplayVisible=false"
-               @loadedmetadata="generateFrames">
-            <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
-            Your browser does not support the video tag.
-        </video>
-        <div id="hover_display" v-if="hoverDisplayVisible">{% raw %}{{ hoverDisplayText }}{% endraw %}</div>
-        <div id="start_marker" class="marker" :style="startMarkerStyle" v-if="startSeconds > 0"></div>
-        <div id="end_marker" class="marker" :style="endMarkerStyle" v-if="endSeconds > 0"></div>
+    <div id="player_area">
+        <div id="container">
+            <video ref="video" width="640" controls autoplay crossorigin="anonymous"
+                   @mousemove="onVideoMove" @mouseleave="hoverDisplayVisible=false"
+                   @loadedmetadata="generateFrames">
+                <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
+                Your browser does not support the video tag.
+            </video>
+            <div id="hover_display" v-if="hoverDisplayVisible">{% raw %}{{ hoverDisplayText }}{% endraw %}</div>
+            <div id="start_marker" class="marker" :style="startMarkerStyle" v-if="startSeconds > 0"></div>
+            <div id="end_marker" class="marker" :style="endMarkerStyle" v-if="endSeconds > 0"></div>
+        </div>
+        <div id="clip_list">
+            <h2>Clips</h2>
+            <div class="clip-item" v-for="clip in clips" :key="clip.id">
+                <img :src="clip.thumbnail" alt="thumbnail">
+                <div>{% raw %}{{ clip.title || 'Untitled' }}{% endraw %}</div>
+                <div>{% raw %}{{ formatTime(clip.duration) }}{% endraw %}</div>
+            </div>
+        </div>
     </div>
 
     <div id="frames">
@@ -126,6 +140,30 @@ createApp({
         const region = ref('us-east-1');
         const result = ref('');
         const frames = ref([]);
+        const clips = ref([]);
+
+        const captureThumbnail = time => {
+            return new Promise(resolve => {
+                const v = video.value;
+                if (!v) { resolve(''); return; }
+                const canvas = document.createElement('canvas');
+                canvas.width = 160;
+                canvas.height = 90;
+                const ctx = canvas.getContext('2d');
+                const originalTime = v.currentTime;
+                const wasPaused = v.paused;
+                const handler = () => {
+                    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+                    const url = canvas.toDataURL('image/png');
+                    if (!wasPaused) v.play();
+                    v.currentTime = originalTime;
+                    resolve(url);
+                };
+                v.pause();
+                v.currentTime = time;
+                v.addEventListener('seeked', handler, { once: true });
+            });
+        };
 
         const startMarkerStyle = computed(() => {
             const v = video.value;
@@ -249,6 +287,13 @@ createApp({
             });
             const data = await res.json();
             result.value = JSON.stringify(data, null, 2);
+            const thumb = await captureThumbnail(startSeconds.value);
+            clips.value.push({
+                id: Date.now(),
+                title: title.value,
+                duration: endSeconds.value - startSeconds.value,
+                thumbnail: thumb
+            });
         };
 
         return {
@@ -278,7 +323,9 @@ createApp({
             startMarkerStyle,
             endMarkerStyle,
             startSeconds,
-            endSeconds
+            endSeconds,
+            clips,
+            formatTime
         };
     }
 }).mount('#app');
