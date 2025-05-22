@@ -22,6 +22,7 @@ def clip():
             end=data['end'],
             bucket=data['bucket'],
             manifest_prefix=data['manifest_prefix'],
+            title=data.get('title'),
             role_arn=data['role_arn'],
             region=data.get('region', 'us-east-1')
         )
