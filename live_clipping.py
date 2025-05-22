@@ -16,6 +16,7 @@ def parse_args():
                         help='S3 bucket for the harvested clip')
     parser.add_argument('--manifest-prefix', required=True,
                         help='Prefix for the clipped manifest key')
+    parser.add_argument('--title', help='Optional clip title')
     parser.add_argument('--role-arn', required=True,
                         help='IAM Role ARN that MediaPackage uses to write to S3')
     parser.add_argument('--region', default='us-east-1', help='AWS region')
@@ -26,8 +27,13 @@ def create_clip(args):
     start_time = datetime.fromisoformat(args.start)
     end_time = datetime.fromisoformat(args.end)
     client = boto3.client('mediapackage', region_name=args.region)
+    if getattr(args, 'title', None):
+        safe_title = args.title.replace(' ', '-')
+        clip_id = f"{safe_title}-{int(datetime.utcnow().timestamp())}"
+    else:
+        clip_id = f"clip-{int(datetime.utcnow().timestamp())}"
     response = client.create_harvest_job(
-        Id=f"clip-{int(datetime.utcnow().timestamp())}",
+        Id=clip_id,
         StartTime=start_time.isoformat()+"Z",
         EndTime=end_time.isoformat()+"Z",
         OriginEndpointId=args.endpoint_id,
