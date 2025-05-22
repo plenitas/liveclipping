@@ -29,6 +29,16 @@
         .frame-controls button {
             margin-left: 4px;
         }
+        .marker {
+            position: absolute;
+            bottom: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transform: translateX(-50%);
+        }
+        #start_marker { background: red; }
+        #end_marker { background: green; }
     </style>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
@@ -44,6 +54,8 @@
             Your browser does not support the video tag.
         </video>
         <div id="hover_display" v-if="hoverDisplayVisible">{% raw %}{{ hoverDisplayText }}{% endraw %}</div>
+        <div id="start_marker" class="marker" :style="startMarkerStyle" v-if="startSeconds > 0"></div>
+        <div id="end_marker" class="marker" :style="endMarkerStyle" v-if="endSeconds > 0"></div>
     </div>
 
     <div id="frames">
@@ -93,7 +105,7 @@
 </div>
 
 <script>
-const { createApp, ref } = Vue;
+const { createApp, ref, computed } = Vue;
 
 createApp({
     setup() {
@@ -114,6 +126,18 @@ createApp({
         const region = ref('us-east-1');
         const result = ref('');
         const frames = ref([]);
+
+        const startMarkerStyle = computed(() => {
+            const v = video.value;
+            if (!v || !v.duration) return {};
+            return { left: `${(startSeconds.value / v.duration) * 100}%` };
+        });
+
+        const endMarkerStyle = computed(() => {
+            const v = video.value;
+            if (!v || !v.duration) return {};
+            return { left: `${(endSeconds.value / v.duration) * 100}%` };
+        });
 
         const formatTime = sec => {
             const s = Math.floor(sec);
@@ -250,7 +274,11 @@ createApp({
             onVideoMove,
             generateFrames,
             previewClip,
-            createClip
+            createClip,
+            startMarkerStyle,
+            endMarkerStyle,
+            startSeconds,
+            endSeconds
         };
     }
 }).mount('#app');
