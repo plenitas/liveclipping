@@ -16,140 +16,177 @@
             color: #fff;
             padding: 2px 4px;
             font-size: 12px;
-            display: none;
         }
     </style>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
 <body>
-<h1>AWS MediaLive Clipping</h1>
+<div id="app">
+    <h1>AWS MediaLive Clipping</h1>
 
-<div id="container">
-    <video id="video" width="640" controls autoplay>
-        <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
-        Your browser does not support the video tag.
-    </video>
-    <div id="hover_display"></div>
-</div>
+    <div id="container">
+        <video ref="video" width="640" controls autoplay
+               @mousemove="onVideoMove" @mouseleave="hoverDisplayVisible=false">
+            <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
+            Your browser does not support the video tag.
+        </video>
+        <div id="hover_display" v-if="hoverDisplayVisible">{{ hoverDisplayText }}</div>
+    </div>
 
-<div>
-    <label>Start Time (UTC): <input type="text" id="start"></label>
-    <button onclick="setStartNow()">Set Start to Now</button>
-    <button onclick="setStartFrame()">Set Start Here</button>
-</div>
-<div>
-    <label>End Time (UTC): <input type="text" id="end"></label>
-    <button onclick="setEndNow()">Set End to Now</button>
-    <button onclick="setEndFrame()">Set End Here</button>
-</div>
-<div>
-    <label>Endpoint ID: <input type="text" id="endpoint_id"></label>
-</div>
-<div>
-    <label>Bucket: <input type="text" id="bucket"></label>
-</div>
-<div>
-    <label>Manifest Prefix: <input type="text" id="manifest_prefix"></label>
-</div>
-<div>
-    <label>Clip Title: <input type="text" id="title"></label>
-</div>
-<div>
-    <label>Role ARN: <input type="text" id="role_arn"></label>
-</div>
-<div>
-    <label>Region: <input type="text" id="region" value="us-east-1"></label>
-</div>
+    <div>
+        <label>Start Time (UTC): <input type="text" v-model="start"></label>
+        <button @click="setStartNow">Set Start to Now</button>
+        <button @click="setStartFrame">Set Start Here</button>
+    </div>
+    <div>
+        <label>End Time (UTC): <input type="text" v-model="end"></label>
+        <button @click="setEndNow">Set End to Now</button>
+        <button @click="setEndFrame">Set End Here</button>
+    </div>
+    <div>
+        <label>Endpoint ID: <input type="text" v-model="endpoint_id"></label>
+    </div>
+    <div>
+        <label>Bucket: <input type="text" v-model="bucket"></label>
+    </div>
+    <div>
+        <label>Manifest Prefix: <input type="text" v-model="manifest_prefix"></label>
+    </div>
+    <div>
+        <label>Clip Title: <input type="text" v-model="title"></label>
+    </div>
+    <div>
+        <label>Role ARN: <input type="text" v-model="role_arn"></label>
+    </div>
+    <div>
+        <label>Region: <input type="text" v-model="region"></label>
+    </div>
 
-<button onclick="createClip()">Create Clip</button>
-<button onclick="previewClip()">Preview Clip</button>
+    <button @click="createClip">Create Clip</button>
+    <button @click="previewClip">Preview Clip</button>
 
-<pre id="result"></pre>
+    <pre>{{ result }}</pre>
+</div>
 
 <script>
-function setStartNow() {
-    const now = new Date().toISOString().slice(0, 19);
-    document.getElementById('start').value = now;
-}
+const { createApp, ref } = Vue;
 
-function setEndNow() {
-    const now = new Date().toISOString().slice(0, 19);
-    document.getElementById('end').value = now;
-}
+createApp({
+    setup() {
+        const video = ref(null);
+        const hoverDisplayVisible = ref(false);
+        const hoverDisplayText = ref('');
+        const hoverSeconds = ref(0);
+        const startSeconds = ref(0);
+        const endSeconds = ref(0);
 
-const video = document.getElementById('video');
-const hoverDisplay = document.getElementById('hover_display');
-let hoverSeconds = 0;
-let startSeconds = 0;
-let endSeconds = 0;
+        const start = ref('');
+        const end = ref('');
+        const endpoint_id = ref('');
+        const bucket = ref('');
+        const manifest_prefix = ref('');
+        const title = ref('');
+        const role_arn = ref('');
+        const region = ref('us-east-1');
+        const result = ref('');
 
-function formatTime(sec) {
-    const s = Math.floor(sec);
-    const h = Math.floor(s / 3600).toString().padStart(2, '0');
-    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
-    const secs = (s % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${secs}`;
-}
+        const formatTime = sec => {
+            const s = Math.floor(sec);
+            const h = String(Math.floor(s / 3600)).padStart(2, '0');
+            const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+            const secs = String(s % 60).padStart(2, '0');
+            return `${h}:${m}:${secs}`;
+        };
 
-video.addEventListener('mousemove', e => {
-    const rect = video.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = x / rect.width;
-    hoverSeconds = percent * video.duration;
-    hoverDisplay.textContent = formatTime(hoverSeconds);
-    hoverDisplay.style.display = 'block';
-});
+        const onVideoMove = e => {
+            const rect = video.value.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percent = x / rect.width;
+            hoverSeconds.value = percent * video.value.duration;
+            hoverDisplayText.value = formatTime(hoverSeconds.value);
+            hoverDisplayVisible.value = true;
+        };
 
-video.addEventListener('mouseleave', () => {
-    hoverDisplay.style.display = 'none';
-});
+        const isoFromCurrent = seconds => {
+            const now = new Date();
+            const diff = video.value.currentTime - seconds;
+            return new Date(now.getTime() - diff * 1000).toISOString().slice(0, 19);
+        };
 
-function isoFromCurrent(seconds) {
-    const now = new Date();
-    const diff = video.currentTime - seconds;
-    return new Date(now.getTime() - diff * 1000).toISOString().slice(0, 19);
-}
+        const setStartNow = () => {
+            start.value = new Date().toISOString().slice(0, 19);
+        };
 
-function setStartFrame() {
-    startSeconds = hoverSeconds;
-    document.getElementById('start').value = isoFromCurrent(hoverSeconds);
-}
+        const setEndNow = () => {
+            end.value = new Date().toISOString().slice(0, 19);
+        };
 
-function setEndFrame() {
-    endSeconds = hoverSeconds;
-    document.getElementById('end').value = isoFromCurrent(hoverSeconds);
-}
+        const setStartFrame = () => {
+            startSeconds.value = hoverSeconds.value;
+            start.value = isoFromCurrent(hoverSeconds.value);
+        };
 
-function previewClip() {
-    video.currentTime = startSeconds;
-    video.play();
-    const handler = () => {
-        if (video.currentTime >= endSeconds) {
-            video.pause();
-            video.removeEventListener('timeupdate', handler);
-        }
-    };
-    video.addEventListener('timeupdate', handler);
-}
+        const setEndFrame = () => {
+            endSeconds.value = hoverSeconds.value;
+            end.value = isoFromCurrent(hoverSeconds.value);
+        };
 
-async function createClip() {
-    const payload = {
-        endpoint_id: document.getElementById('endpoint_id').value,
-        start: document.getElementById('start').value,
-        end: document.getElementById('end').value,
-        bucket: document.getElementById('bucket').value,
-        manifest_prefix: document.getElementById('manifest_prefix').value,
-        title: document.getElementById('title').value,
-        role_arn: document.getElementById('role_arn').value,
-        region: document.getElementById('region').value
-    };
-    const res = await fetch('/clip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
-}
+        const previewClip = () => {
+            if (!video.value) return;
+            video.value.currentTime = startSeconds.value;
+            video.value.play();
+            const handler = () => {
+                if (video.value.currentTime >= endSeconds.value) {
+                    video.value.pause();
+                    video.value.removeEventListener('timeupdate', handler);
+                }
+            };
+            video.value.addEventListener('timeupdate', handler);
+        };
+
+        const createClip = async () => {
+            const payload = {
+                endpoint_id: endpoint_id.value,
+                start: start.value,
+                end: end.value,
+                bucket: bucket.value,
+                manifest_prefix: manifest_prefix.value,
+                title: title.value,
+                role_arn: role_arn.value,
+                region: region.value
+            };
+            const res = await fetch('/clip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            result.value = JSON.stringify(data, null, 2);
+        };
+
+        return {
+            video,
+            hoverDisplayVisible,
+            hoverDisplayText,
+            start,
+            end,
+            endpoint_id,
+            bucket,
+            manifest_prefix,
+            title,
+            role_arn,
+            region,
+            result,
+            setStartNow,
+            setEndNow,
+            setStartFrame,
+            setEndFrame,
+            onVideoMove,
+            previewClip,
+            createClip
+        };
+    }
+}).mount('#app');
 </script>
 </body>
 </html>
