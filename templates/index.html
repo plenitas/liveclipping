@@ -17,6 +17,18 @@
             padding: 2px 4px;
             font-size: 12px;
         }
+        #frames {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .frame {
+            margin: 4px;
+            text-align: center;
+        }
+        .frame-controls button {
+            margin-left: 4px;
+        }
     </style>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
@@ -25,12 +37,24 @@
     <h1>AWS MediaLive Clipping</h1>
 
     <div id="container">
-        <video ref="video" width="640" controls autoplay
-               @mousemove="onVideoMove" @mouseleave="hoverDisplayVisible=false">
+        <video ref="video" width="640" controls autoplay crossorigin="anonymous"
+               @mousemove="onVideoMove" @mouseleave="hoverDisplayVisible=false"
+               @loadedmetadata="generateFrames">
             <source src="{{ video_url }}" type="application/vnd.apple.mpegurl">
             Your browser does not support the video tag.
         </video>
         <div id="hover_display" v-if="hoverDisplayVisible">{{ hoverDisplayText }}</div>
+    </div>
+
+    <div id="frames">
+        <div class="frame" v-for="frame in frames" :key="frame.time">
+            <img :src="frame.data" width="100">
+            <div class="frame-controls">
+                {{ formatTime(frame.time) }}
+                <button @click="setStartFromFrame(frame.time)">Start</button>
+                <button @click="setEndFromFrame(frame.time)">End</button>
+            </div>
+        </div>
     </div>
 
     <div>
@@ -89,6 +113,7 @@ createApp({
         const role_arn = ref('');
         const region = ref('us-east-1');
         const result = ref('');
+        const frames = ref([]);
 
         const formatTime = sec => {
             const s = Math.floor(sec);
@@ -113,6 +138,33 @@ createApp({
             return new Date(now.getTime() - diff * 1000).toISOString().slice(0, 19);
         };
 
+        const generateFrames = async () => {
+            const v = video.value;
+            if (!v || !v.duration) return;
+            const canvas = document.createElement('canvas');
+            canvas.width = 160;
+            canvas.height = 90;
+            const ctx = canvas.getContext('2d');
+            frames.value = [];
+            const count = 10;
+            const step = v.duration / count;
+            const originalTime = v.currentTime;
+            v.pause();
+            for (let i = 0; i < count; i++) {
+                const t = i * step;
+                await new Promise(res => {
+                    const handler = () => {
+                        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+                        frames.value.push({ time: t, data: canvas.toDataURL('image/png') });
+                        res();
+                    };
+                    v.currentTime = t;
+                    v.addEventListener('seeked', handler, { once: true });
+                });
+            }
+            v.currentTime = originalTime;
+        };
+
         const setStartNow = () => {
             start.value = new Date().toISOString().slice(0, 19);
         };
@@ -129,6 +181,16 @@ createApp({
         const setEndFrame = () => {
             endSeconds.value = hoverSeconds.value;
             end.value = isoFromCurrent(hoverSeconds.value);
+        };
+
+        const setStartFromFrame = time => {
+            startSeconds.value = time;
+            start.value = isoFromCurrent(time);
+        };
+
+        const setEndFromFrame = time => {
+            endSeconds.value = time;
+            end.value = isoFromCurrent(time);
         };
 
         const previewClip = () => {
@@ -168,6 +230,7 @@ createApp({
             video,
             hoverDisplayVisible,
             hoverDisplayText,
+            frames,
             start,
             end,
             endpoint_id,
@@ -181,7 +244,10 @@ createApp({
             setEndNow,
             setStartFrame,
             setEndFrame,
+            setStartFromFrame,
+            setEndFromFrame,
             onVideoMove,
+            generateFrames,
             previewClip,
             createClip
         };
