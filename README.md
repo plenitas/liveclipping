@@ -33,5 +33,5 @@ python web_app.py
 
 Then open `http://localhost:5000` in your browser. The page shows a video player
 and a form to submit the start and end times along with other parameters. After
-filling out the fields press "Create Clip" and the server will request a harvest
-job from MediaPackage.
+filling out the fields press "Upload Clip" and the server will request a harvest
+job from MediaPackage which uploads the clip to your S3 bucket.

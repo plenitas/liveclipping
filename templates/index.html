@@ -60,7 +60,7 @@
     <label>Region: <input type="text" id="region" value="us-east-1"></label>
 </div>
 
-<button onclick="createClip()">Create Clip</button>
+<button onclick="uploadClip()">Upload Clip</button>
 <button onclick="previewClip()">Preview Clip</button>
 
 <pre id="result"></pre>
@@ -131,7 +131,7 @@ function previewClip() {
     video.addEventListener('timeupdate', handler);
 }
 
-async function createClip() {
+async function uploadClip() {
     const payload = {
         endpoint_id: document.getElementById('endpoint_id').value,
         start: document.getElementById('start').value,
